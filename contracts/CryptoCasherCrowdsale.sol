@@ -124,6 +124,17 @@ contract StandardToken is ERC20, BasicToken {
 
     mapping (address => mapping (address => uint256)) internal allowed;
 
+    address public addressFundTeam = 0x7d63d560c994f4cc29c29c85a1bc24e459786a39;
+    uint256 public fundTeam = 1125 * 10**4 * (10 ** 18);
+
+    uint256 public startTime = 1533081600; // 01 Aug 2018 00:00:00 GMT
+    uint256 endTime = startTime + 35 days;
+    uint256 firstRelease = endTime + 26 weeks;
+    uint256 secondRelease = firstRelease + 26 weeks;
+    uint256 thirdRelease = secondRelease + 26 weeks;
+    uint256 fourthRelease = thirdRelease + 26 weeks;
+    uint256 fifthRelease = fourthRelease + 26 weeks;
+
     /**
      * @dev Transfer tokens from one address to another
      * @param _from address The address which you want to send tokens from
@@ -132,6 +143,10 @@ contract StandardToken is ERC20, BasicToken {
      */
     function transferFrom(address _from, address _to, uint256 _value) public onlyPayloadSize(3) returns (bool) {
         require(_to != address(0));
+        if (msg.sender == addressFundTeam) {
+            require(checkVesting(_value, now) > 0);
+        }
+
         require(_value <= balances[_from]);
         require(_value <= allowed[_from][msg.sender]);
         require(transfersEnabled);
@@ -193,6 +208,30 @@ contract StandardToken is ERC20, BasicToken {
         return true;
     }
 
+    function checkVesting(uint256 _value, uint256 _currentTime) public view returns(uint8 period) {
+        period = 0;
+        require(firstRelease <= _currentTime);
+        if (firstRelease <= _currentTime && _currentTime < secondRelease) {
+            period = 1;
+            require(balances[addressFundTeam].sub(_value) > fundTeam.mul(95).div(100));
+        }
+        if (secondRelease <= _currentTime && _currentTime < thirdRelease) {
+            period = 2;
+            require(balances[addressFundTeam].sub(_value) > fundTeam.mul(9).div(10));
+        }
+        if (thirdRelease <= _currentTime && _currentTime < fourthRelease) {
+            period = 3;
+            require(balances[addressFundTeam].sub(_value) > fundTeam.mul(4).div(5));
+        }
+        if (fourthRelease <= _currentTime) {
+            period = 4;
+            require(balances[addressFundTeam].sub(_value) > fundTeam.mul(3).div(10));
+        }
+        if (fifthRelease <= _currentTime) {
+            period = 5;
+            require(balances[addressFundTeam].sub(_value) >= 0);
+        }
+    }
 }
 
 
@@ -246,18 +285,10 @@ contract Ownable {
 
 contract MintableToken is StandardToken, Ownable {
     string public constant name = "CryptoCasher";
-    string public constant symbol = "CCHR";
+    string public constant symbol = "CRR";
     uint8 public constant decimals = 18;
 
     event Mint(address indexed to, uint256 amount);
-    event MintFinished();
-
-    bool public mintingFinished;
-
-    modifier canMint() {
-        require(!mintingFinished);
-        _;
-    }
 
     /**
      * @dev Function to mint tokens
@@ -265,21 +296,11 @@ contract MintableToken is StandardToken, Ownable {
      * @param _amount The amount of tokens to mint.
      * @return A boolean that indicates if the operation was successful.
      */
-    function mint(address _to, uint256 _amount, address _owner) canMint internal returns (bool) {
+    function mint(address _to, uint256 _amount, address _owner) internal returns (bool) {
         balances[_to] = balances[_to].add(_amount);
         balances[_owner] = balances[_owner].sub(_amount);
         emit Mint(_to, _amount);
         emit Transfer(_owner, _to, _amount);
-        return true;
-    }
-
-    /**
-     * @dev Function to stop minting new tokens.
-     * @return True if the operation was successful.
-     */
-    function finishMinting() onlyOwner canMint internal returns (bool) {
-        mintingFinished = true;
-        emit MintFinished();
         return true;
     }
 
@@ -319,7 +340,7 @@ contract Crowdsale is Ownable {
 
     uint256 public tokenAllocated;
 
-    uint256 public hardWeiCap = 119000 * (10 ** 18);
+    uint256 public hardCap = 35000 ether;
 
     constructor (address _wallet) public {
         require(_wallet != address(0));
@@ -338,9 +359,6 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
 
     uint256 public constant INITIAL_SUPPLY = 75 * 10**6 * (10 ** uint256(decimals));
     uint256 public fundForSale = 525 * 10**5 * (10 ** uint256(decimals));
-
-    address public addressFundTeam = 0x7d63d560c994f4cc29c29c85a1bc24e459786a39;
-    uint256 public fundTeam = 1125 * 10**4 * (10 ** uint256(decimals));
 
     address public addressFundAdvisors = 0x443a9477bad71137e7914672831298cc514f4ce4;
     uint256 public fundAdvisors = 75 * 10**5 * (10 ** uint256(decimals));
@@ -364,7 +382,7 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
     event TokenPurchase(address indexed beneficiary, uint256 value, uint256 amount);
     event TokenLimitReached(uint256 tokenRaised, uint256 purchasedToken);
     event HardCapReached();
-    event Finalized();
+    event Burn(address indexed burner, uint256 value);
 
     constructor (address _owner, address _ownerTwo) public
     Crowdsale(_owner)
@@ -375,7 +393,6 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
         ownerTwo = _ownerTwo;
         //owner = msg.sender; //for test's
         transfersEnabled = true;
-        mintingFinished = false;
         state = State.Active;
         totalSupply = INITIAL_SUPPLY;
         mintForOwner(owner);
@@ -516,12 +533,10 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
 
     function mintForOwner(address _wallet) internal returns (bool result) {
         result = false;
-        uint256 fundBounty = 24533333 * (10 ** uint256(decimals));
-        uint256 fundDevelopers = 122666665 * (10 ** uint256(decimals));
         require(_wallet != address(0));
-        balances[addressFundDevelopers] = balances[addressFundDevelopers].add(fundDevelopers);
+        balances[addressFundAdvisors] = balances[addressFundAdvisors].add(fundAdvisors);
         balances[addressFundBounty] = balances[addressFundBounty].add(fundBounty);
-        tokenAllocated = tokenAllocated.add(fundDevelopers).add(fundBounty);
+        tokenAllocated = tokenAllocated.add(fundAdvisors).add(fundBounty).add(fundTeam);
         balances[_wallet] = balances[_wallet].add(INITIAL_SUPPLY).sub(tokenAllocated);
         result = true;
     }
@@ -536,21 +551,27 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
             emit TokenLimitReached(tokenAllocated, addTokens);
             return 0;
         }
-        if (weiRaised.add(_weiAmount) > hardWeiCap) {
+        if (weiRaised.add(_weiAmount) > hardCap) {
             emit HardCapReached();
             return 0;
         }
         return addTokens;
     }
 
-    function finalize() public onlyOwner inState(State.Active) returns (bool result) {
-        result = false;
-        state = State.Closed;
-        wallet.transfer(address(this).balance);
-        finishMinting();
-        emit Finalized();
-        result = true;
-    }
+    /**
+    * @dev owner burn Token.
+    * @param _value amount of burnt tokens
+    */
+    function ownerBurnToken(uint _value) public onlyOwner {
+        require(_value > 0);
+        require(_value <= balances[owner]);
+        require(_value <= totalSupply);
+        require(_value <= fundForSale);
 
+        balances[owner] = balances[owner].sub(_value);
+        totalSupply = totalSupply.sub(_value);
+        fundForSale = fundForSale.sub(_value);
+        emit Burn(msg.sender, _value);
+    }
 }
 
