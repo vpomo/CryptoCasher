@@ -366,15 +366,12 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
     address public addressFundBounty = 0x32D5b0432E770838d3632bf0fca60bFDF283c299;
     uint256 public fundBounty = 75 * 10**5 * (10 ** uint256(decimals));
 
-    uint256[] public discount  = [50, 25, 20, 15, 10];
+    uint256[] public discount  = [200, 150, 100, 75, 50, 25];
 
+    uint256 public weiMinSalePrivate = 10 ether;
 
-
-    uint256 public weiMinSalePreIco = 1190 * 10 ** 15;
-    uint256 public weiMinSaleIco = 29 * 10 ** 15;
-    uint256 priceToken = 3362;
-    // $0.25 = 1 token => $1,000 = 1.19 ETH =>
-    //4,000 token = 1.19 ETH => 1 ETH = 4,000/1.19 = 3362 token
+    uint256 priceToken = 0.001 ether;
+    uint256 priceTokenPrivate = 0.0008 ether;
 
     uint256 public countInvestor;
     uint256 public currentAfterIcoPeriod;
@@ -434,16 +431,16 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
 
     function getTotalAmountOfTokens(uint256 _weiAmount) internal view returns (uint256) {
         uint256 currentDate = now;
-        //currentDate = 1534204800; //for test's (Tue, 14 Aug 2018 00:00:00 GMT)
+        //currentDate = 1537444800; //for test's (Tue, 20 Sep 2018 12:00:00 GMT)
         uint256 currentPeriod = getPeriod(currentDate);
         uint256 amountOfTokens = 0;
-        if(currentPeriod < 5){
-            amountOfTokens = _weiAmount.mul(priceToken).mul(discount[currentPeriod] + 100).div(100);
+        if(currentPeriod == 0 && _weiAmount >= weiMinSalePrivate){
+            amountOfTokens = _weiAmount.mul(priceTokenPrivate).mul(discount[0] + 1000).div(1000);
         }
-        if(currentPeriod == 0 && _weiAmount < weiMinSalePreIco){
-            amountOfTokens = 0;
+        if(0 < currentPeriod && currentPeriod < 6){
+            amountOfTokens = _weiAmount.mul(priceToken).mul(discount[currentPeriod] + 1000).div(1000);
         }
-        if(0 < currentPeriod && currentPeriod < 5 && _weiAmount < weiMinSaleIco){
+        if(currentPeriod == 10){
             amountOfTokens = 0;
         }
         return amountOfTokens;
@@ -451,79 +448,39 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
 
     /**
     * Pre-ICO sale starts on 01 of Jul, ends on 05 Jul 2018
-    * 1st. Stage starts 06 of Jul, ends on 15 of Jul , 2018
-    * 2nd. Stage starts 16 of Jul, ends on 25 of Jul , 2018
-    * 3rd. Stage starts 26 of Jul, ends on 05 of Aug , 2018
-    * 4th. Stage starts 06 of Aug, ends on 15  of Aug , 2018
+    * 0 Stage starts before 15 of Sep, 2018
+    * 1 Stage starts 15 of Sep, ends on 15 of Oct , 2018
+    * 2 Stage starts 16 of Oct, ends on 15 of Nov , 2018
+    * 3 Stage starts 16 of Nov, ends on 15 of Dec , 2018
+    * 4 Stage starts 16 of Dec, ends on 15  of Jan , 2019
+    * 5 Stage starts 16 of Jan, ends on 15  of Feb , 2019
     */
     function getPeriod(uint256 _currentDate) public pure returns (uint) {
-        //1530403200 - July, 01, 2018 00:00:00 && 1530835199 - July, 05, 2018 23:59:59
-        if( 1530403200 <= _currentDate && _currentDate <= 1530835199){
+        //before Sep, 15, 2018 12:00:00
+        if(_currentDate <= 1537012800){
             return 0;
         }
-        //1530835200 - July, 06, 2018 00:00:00 && 1531699199 - July, 15, 2018 23:59:59
-        if( 1530835200 <= _currentDate && _currentDate <= 1531699199){
+        //1530403200 - Sep, 15, 2018 12:00:01 && 1530835199 - Oct, 15, 2018 12:00:00
+        if( 1537012801 <= _currentDate && _currentDate <= 1539604800){
             return 1;
         }
-        //1531699200 - July, 16, 2018 00:00:00 && 1532563199 - July, 25, 2018 23:59:59
-        if( 1531699200 <= _currentDate && _currentDate <= 1532563199){
+        //1530835200 - Oct, 15, 2018 12:00:01 && 1531699199 - Nov, 15, 2018 12:00:00
+        if( 1539604801 <= _currentDate && _currentDate <= 1542283200){
             return 2;
         }
-        //1532563200 - July, 26, 2018 00:00:00 && 1533513599 - August,   05, 2018 23:59:59
-        if( 1532563200 <= _currentDate && _currentDate <= 1533513599){
+        //1531699200 - Nov, 15, 2018 12:00:01 && 1532563199 - Dec, 15, 2018 12:00:00
+        if( 1542283201 <= _currentDate && _currentDate <= 1544875200){
             return 3;
         }
-        //1533513600 - August,   06, 2018 00:00:00 && 1534377599 - August,   15, 2018 23:59:59
-        if( 1533513600 <= _currentDate && _currentDate <= 1534377599){
+        //1532563200 - Dec, 15, 2018 12:00:00 && 1533513599 - Jan,   15, 2018 12:00:00
+        if( 1544875201 <= _currentDate && _currentDate <= 1547553600){
             return 4;
         }
+        //1533513600 - Jan,   15, 2018 12:00:00 && 1534377599 - Feb,   15, 2018 12:00:00
+        if( 1547553601 <= _currentDate && _currentDate <= 1550232000){
+            return 5;
+        }
         return 10;
-    }
-
-    function getAfterIcoPeriod(uint256 _currentDate) public pure returns (uint) {
-        uint256 endIco = 1534377600; // August,   16, 2018 00:00:00
-        if( endIco < _currentDate && _currentDate <= endIco + 2*365 days){
-            return 100;
-        }
-        if( endIco + 2*365 days < _currentDate && _currentDate <= endIco + 4*365 days){
-            return 200;
-        }
-        if( endIco + 4*365 days < _currentDate && _currentDate <= endIco + 6*365 days){
-            return 300;
-        }
-        if( endIco + 6*365 days < _currentDate && _currentDate <= endIco + 8*365 days){
-            return 400;
-        }
-        return 0;
-    }
-
-    function mintAfterIcoPeriod() public returns (bool result) {
-        uint256 totalCost = tokenAllocated.div(priceToken);
-        uint256 fivePercent = 0;
-        uint256 currentDate = now;
-        //currentDate = 1571101199; //for test Oct, 15, 2019
-        bool changePeriod = false;
-        uint256 nonSoldToken = totalSupply.sub(tokenAllocated);
-        uint256 mintTokens = 0;
-        result = false;
-        if (currentAfterIcoPeriod < getAfterIcoPeriod(currentDate)){
-            currentAfterIcoPeriod = currentAfterIcoPeriod.add(getAfterIcoPeriod(currentDate));
-            changePeriod = true;
-        }
-        if(totalCost.mul(100).div(weiRaised) < 200 || changePeriod){
-            mintTokens = nonSoldToken.div(4); // 25%
-            fivePercent = mintTokens.div(20); // 5%
-
-            balances[addressFundBonus] = balances[addressFundBonus].add(fivePercent.mul(2));
-            balances[addressFundBounty] = balances[addressFundBounty].add(fivePercent);
-            balances[addressFundInvestment] = balances[addressFundInvestment].add(fivePercent.mul(10));
-            balances[addressFundAdministration] = balances[addressFundAdministration].add(fivePercent);
-            //balances[ownerTwo] = balances[ownerTwo].add(fivePercent.mul(6));
-
-            balances[owner] = balances[owner].sub(fivePercent.mul(14)); // - 70%
-            tokenAllocated = tokenAllocated.add(fivePercent.mul(14));
-            result = true;
-        }
     }
 
     function deposit(address investor) internal {

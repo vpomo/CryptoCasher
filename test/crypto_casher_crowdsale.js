@@ -80,7 +80,7 @@ contract('CryptoCasherCrowdsale', (accounts) => {
     });
 
     it('verification define ICO period', async ()  => {
-        var currentDate = 1519516800; // Feb, 25
+        var currentDate = 1532088000; // Jul, 20
         period = await contract.getPeriod(currentDate);
         assert.equal(10, period);
 
