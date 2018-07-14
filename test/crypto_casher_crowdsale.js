@@ -1,23 +1,23 @@
 var CryptoCasherCrowdsale = artifacts.require("./CryptoCasherCrowdsale.sol");
-//import assertRevert from './helpers/assertRevert';
 
 contract('CryptoCasherCrowdsale', (accounts) => {
     var contract;
     //var owner = "0x6d2Faf6A5706bCC104E9C001f0Af585c11F72437";
-    var addressFundBonus = "0x1f318fE745bEE511a72A8AB2b704a5F285587335";
     var owner = accounts[0];
-    var rate = 3362*1.1;
-    var buyWei = 5 * 10**17;
-    var rateNew = 3362*1.1;
+    var rate = 1000*1.15;
+    var buyWei = 1 * 10**18;
+    var rateNew = 1000*1.15;
     var buyWeiNew = 5 * 10**17;
     var buyWeiMin = 1 * 10**16;
-    var buyWeiCap = 120000 * (10 ** 18);
+    var buyWeiCap = 35000 * (10e18);
 
     var period = 0;
 
-    var totalSupply = Number(466133330* (10 ** 18));
+    var fundForSale = Number(525 * 10**23);
+    var tokenAllocated = Number(225 * 10**23);
 
-    it('should deployed contract', async ()  => {
+
+it('should deployed contract', async ()  => {
         assert.equal(undefined, contract);
         contract = await CryptoCasherCrowdsale.deployed();
         assert.notEqual(undefined, contract);
@@ -27,13 +27,19 @@ contract('CryptoCasherCrowdsale', (accounts) => {
         assert.notEqual(undefined, contract.address);
     });
 
+
     it('verification balance owner contract', async ()  => {
         var balanceOwner = await contract.balanceOf(owner);
-        //console.log("balanceOwner = " + balanceOwner);
-        assert.equal(totalSupply, balanceOwner);
+        var tokenAllocatedCurrent = await contract.tokenAllocated.call();
+        assert.equal(tokenAllocated, tokenAllocatedCurrent);
+        assert.equal(fundForSale, balanceOwner);
     });
 
     it('verification of receiving Ether', async ()  => {
+        await contract.addToWhitelist(accounts[2], {from:accounts[0]});
+        await contract.addToWhitelist(accounts[3], {from:accounts[0]});
+        var isWhiteList = await contract.whitelist.call(accounts[2]);
+        assert.equal(true, isWhiteList);
 
         var tokenAllocatedBefore = await contract.tokenAllocated.call();
         var balanceAccountTwoBefore = await contract.balanceOf(accounts[2]);
@@ -42,13 +48,13 @@ contract('CryptoCasherCrowdsale', (accounts) => {
 
         var numberToken = await contract.validPurchaseTokens.call(Number(buyWei));
         //console.log(" numberTokens = " + JSON.stringify(numberToken));
-        //console.log("numberTokens = " + numberToken);
+        //console.log("numberTokens = " + Number(numberToken/10**18));
 
         await contract.buyTokens(accounts[2],{from:accounts[2], value:buyWei});
         var tokenAllocatedAfter = await contract.tokenAllocated.call();
         //console.log("tokenAllocatedAfter = " + tokenAllocatedAfter);
 
-        assert.isTrue(tokenAllocatedBefore < tokenAllocatedAfter);
+        assert.isTrue(Number(tokenAllocatedBefore) < Number(tokenAllocatedAfter));
         //assert.equal(rate*buyWei, tokenAllocatedAfter - tokenAllocatedBefore);
 
         var balanceAccountTwoAfter = await contract.balanceOf(accounts[2]);
@@ -80,67 +86,56 @@ contract('CryptoCasherCrowdsale', (accounts) => {
     });
 
     it('verification define ICO period', async ()  => {
-        var currentDate = 1532088000; // Jul, 20
-        period = await contract.getPeriod(currentDate);
-        assert.equal(10, period);
-
-        currentDate = 1530489600; // July, 02
+        currentDate = 1534766400; // Aug, 20
         period = await contract.getPeriod(currentDate);
         assert.equal(0, period);
 
-        currentDate = 1530921600; // July, 07
+        currentDate = 1537444800; // Sep, 20
         period = await contract.getPeriod(currentDate);
         assert.equal(1, period);
 
-        currentDate = 1532044800; // July, 20
+        currentDate = 1540036800; // Oct, 20
         period = await contract.getPeriod(currentDate);
         assert.equal(2, period);
 
-        currentDate = 1532736000; // July, 28
+        currentDate = 1542715200; // Nov, 20
         period = await contract.getPeriod(currentDate);
         assert.equal(3, period);
 
-        currentDate = 1533859200; // Aug, 10
+        currentDate = 1545307200; // Dec, 20
         period = await contract.getPeriod(currentDate);
         assert.equal(4, period);
 
-        currentDate = 1536537600; // Sep, 10
+        currentDate = 1547985600; // Jan, 20
+        period = await contract.getPeriod(currentDate);
+        assert.equal(5, period);
+
+        currentDate = 1550664000; // Feb, 20
         period = await contract.getPeriod(currentDate);
         assert.equal(10, period);
     });
 
-    it('verification define After ICO period', async ()  => {
-        var currentDate = 1519516800; // Feb, 25
-        period = await contract.getAfterIcoPeriod(currentDate);
-        assert.equal(0, period);
+    it('check vesting period', async ()  => {
+        var currentDate = 1550664000; // Feb, 20, 2019
+        var vestingPeriod = await contract.checkVesting(buyWeiMin, currentDate);
+        assert.equal(1, vestingPeriod);
 
-        currentDate = 1564704000; // Aug, 02, 2019
-        period = await contract.getAfterIcoPeriod(currentDate);
-        assert.equal(100, period);
+        var currentDate = 1566302400; // Aug, 20, 2019
+        var vestingPeriod = await contract.checkVesting(buyWeiMin, currentDate);
+        assert.equal(2, vestingPeriod);
 
-        currentDate = 1627862400; // Aug, 02, 2021
-        period = await contract.getAfterIcoPeriod(currentDate);
-        assert.equal(200, period);
+        var currentDate = 1582200000; // Feb, 20, 2020
+        var vestingPeriod = await contract.checkVesting(buyWeiMin, currentDate);
+        assert.equal(3, vestingPeriod);
 
-        currentDate = 1690934400; // Aug, 02, 2023
-        period = await contract.getAfterIcoPeriod(currentDate);
-        assert.equal(300, period);
+        var currentDate = 1597924800; // Aug, 20, 2020
+        var vestingPeriod = await contract.checkVesting(buyWeiMin, currentDate);
+        assert.equal(4, vestingPeriod);
 
-        currentDate = 1754092800; // Aug, 02, 2025
-        period = await contract.getAfterIcoPeriod(currentDate);
-        assert.equal(400, period);
-
-        currentDate = 1817164800; // Aug, 02, 2027
-        period = await contract.getAfterIcoPeriod(currentDate);
-        assert.equal(0, period);
+        var currentDate = 1613822400; // Feb, 20, 2021
+        var vestingPeriod = await contract.checkVesting(buyWeiMin, currentDate);
+        assert.equal(5, vestingPeriod);
     });
-
-    it('verification tokens limit min amount', async ()  => {
-            var numberTokensMinWey = await contract.validPurchaseTokens.call(buyWeiMin);
-            //console.log("numberTokensMinWey = " + numberTokensMinWey);
-            assert.equal(0, Number(numberTokensMinWey));
-    });
-
 
     it('verification tokens cap reached', async ()  => {
             var numberTokensNormal = await contract.validPurchaseTokens.call(buyWei);
@@ -151,30 +146,6 @@ contract('CryptoCasherCrowdsale', (accounts) => {
             //console.log("numberTokensFault = " + numberTokensFault);
             assert.equal(0, numberTokensFault);
     });
-
-    it('verification mint After ICO period', async ()  => {
-            var tokenAllocatedBefore = await contract.tokenAllocated.call();
-            //console.log("tokenAllocatedBefore = " + tokenAllocatedBefore);
-            var totalCost = tokenAllocatedBefore/3362;
-            //console.log("totalCost = " + totalCost);
-            var weiRaised = await contract.weiRaised.call();
-            //console.log("weiRaised = " + weiRaised);
-            //console.log("rate = " + (totalCost/weiRaised)*100);
-
-            await contract.mintAfterIcoPeriod();
-
-            var tokenAllocatedAfter = await contract.tokenAllocated.call();
-            //console.log("tokenAllocatedAfter = " + tokenAllocatedAfter);
-
-            var currentAfterIcoPeriod = await contract.currentAfterIcoPeriod.call();
-            //console.log("currentAfterIcoPeriod = " + currentAfterIcoPeriod);
-            var fundBonus = await contract.balanceOf(addressFundBonus);
-            //console.log("fundBonus = " + fundBonus);
-            //console.log("totalSupply - tokenAllocatedBefore = " + (totalSupply - tokenAllocatedBefore));
-            //console.log((totalSupply - tokenAllocatedBefore) * 0.25 * 0.1);
-            //assert.equal(0, Number(numberTokensMinWey));
-    });
-
 });
 
 

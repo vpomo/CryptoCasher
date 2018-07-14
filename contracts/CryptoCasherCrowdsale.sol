@@ -124,16 +124,10 @@ contract StandardToken is ERC20, BasicToken {
 
     mapping (address => mapping (address => uint256)) internal allowed;
 
-    address public addressFundTeam = 0x7d63d560c994f4cc29c29c85a1bc24e459786a39;
+    address public addressFundTeam = 0xAdF9C6D6a69d29a466B1B2182144e8B831E09A1e;
     uint256 public fundTeam = 1125 * 10**4 * (10 ** 18);
 
-    uint256 public startTime = 1533081600; // 01 Aug 2018 00:00:00 GMT
-    uint256 endTime = startTime + 35 days;
-    uint256 firstRelease = endTime + 26 weeks;
-    uint256 secondRelease = firstRelease + 26 weeks;
-    uint256 thirdRelease = secondRelease + 26 weeks;
-    uint256 fourthRelease = thirdRelease + 26 weeks;
-    uint256 fifthRelease = fourthRelease + 26 weeks;
+    uint256 endTimeIco = 1550232000; //Fri, 15 Feb 2019 12:00:00 GMT
 
     /**
      * @dev Transfer tokens from one address to another
@@ -210,24 +204,24 @@ contract StandardToken is ERC20, BasicToken {
 
     function checkVesting(uint256 _value, uint256 _currentTime) public view returns(uint8 period) {
         period = 0;
-        require(firstRelease <= _currentTime);
-        if (firstRelease <= _currentTime && _currentTime < secondRelease) {
+        require(endTimeIco <= _currentTime);
+        if (endTimeIco <= _currentTime && _currentTime < endTimeIco + 26 weeks) {
             period = 1;
-            require(balances[addressFundTeam].sub(_value) > fundTeam.mul(95).div(100));
+            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(95).div(100));
         }
-        if (secondRelease <= _currentTime && _currentTime < thirdRelease) {
+        if (endTimeIco + 26 weeks <= _currentTime && _currentTime < endTimeIco + 52 weeks) {
             period = 2;
-            require(balances[addressFundTeam].sub(_value) > fundTeam.mul(9).div(10));
+            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(85).div(100));
         }
-        if (thirdRelease <= _currentTime && _currentTime < fourthRelease) {
+        if (endTimeIco + 52 weeks <= _currentTime && _currentTime < endTimeIco + 78 weeks) {
             period = 3;
-            require(balances[addressFundTeam].sub(_value) > fundTeam.mul(4).div(5));
+            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(65).div(100));
         }
-        if (fourthRelease <= _currentTime) {
+        if (endTimeIco + 78 weeks <= _currentTime && _currentTime < endTimeIco + 104 weeks) {
             period = 4;
-            require(balances[addressFundTeam].sub(_value) > fundTeam.mul(3).div(10));
+            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(35).div(100));
         }
-        if (fifthRelease <= _currentTime) {
+        if (endTimeIco + 104 weeks <= _currentTime) {
             period = 5;
             require(balances[addressFundTeam].sub(_value) >= 0);
         }
@@ -242,8 +236,6 @@ contract StandardToken is ERC20, BasicToken {
  */
 contract Ownable {
     address public owner;
-    address public ownerTwo;
-
     event OwnerChanged(address indexed previousOwner, address indexed newOwner);
 
     /**
@@ -258,7 +250,7 @@ contract Ownable {
      * @dev Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(msg.sender == owner || msg.sender == ownerTwo);
+        require(msg.sender == owner);
         _;
     }
 
@@ -267,12 +259,11 @@ contract Ownable {
      * @dev Allows the current owner to transfer control of the contract to a newOwner.
      * @param _newOwner The address to transfer ownership to.
      */
-    function changeOwnerTwo(address _newOwner) onlyOwner public {
+    function changeOwner(address _newOwner) onlyOwner public {
         require(_newOwner != address(0));
         emit OwnerChanged(owner, _newOwner);
-        ownerTwo = _newOwner;
+        owner = _newOwner;
     }
-
 }
 
 
@@ -349,55 +340,48 @@ contract Crowdsale is Ownable {
 }
 
 
-contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
+contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
     using SafeMath for uint256;
 
-    enum State {Active, Closed}
-    State public state;
-
     mapping (address => uint256) public deposited;
+    mapping(address => bool) public whitelist;
+    // List of admins
+    mapping (address => bool) public contractAdmins;
 
     uint256 public constant INITIAL_SUPPLY = 75 * 10**6 * (10 ** uint256(decimals));
     uint256 public fundForSale = 525 * 10**5 * (10 ** uint256(decimals));
 
-    address public addressFundAdvisors = 0x443a9477bad71137e7914672831298cc514f4ce4;
+    address public addressFundAdvisors = 0xAdF9C6D6a69d29a466B1B2182144e8B831E09A1e;
     uint256 public fundAdvisors = 75 * 10**5 * (10 ** uint256(decimals));
 
-    address public addressFundBounty = 0x32D5b0432E770838d3632bf0fca60bFDF283c299;
-    uint256 public fundBounty = 75 * 10**5 * (10 ** uint256(decimals));
+    address public addressFundBounty = 0xAdF9C6D6a69d29a466B1B2182144e8B831E09A1e;
+    uint256 public fundBounty = 375 * 10**4 * (10 ** uint256(decimals));
 
     uint256[] public discount  = [200, 150, 100, 75, 50, 25];
 
     uint256 public weiMinSalePrivate = 10 ether;
 
-    uint256 priceToken = 0.001 ether;
-    uint256 priceTokenPrivate = 0.0008 ether;
+    uint256 priceToken = 1000;
+    uint256 priceTokenPrivate = 1250;
 
     uint256 public countInvestor;
-    uint256 public currentAfterIcoPeriod;
+    uint256 public percentReferal = 5;
 
     event TokenPurchase(address indexed beneficiary, uint256 value, uint256 amount);
     event TokenLimitReached(uint256 tokenRaised, uint256 purchasedToken);
     event HardCapReached();
     event Burn(address indexed burner, uint256 value);
 
-    constructor (address _owner, address _ownerTwo) public
-    Crowdsale(_owner)
+    constructor (address _owner, address _wallet) public
+    Crowdsale(_wallet)
     {
         require(_owner != address(0));
-        require(_ownerTwo != address(0));
+        require(_wallet != address(0));
         owner = _owner;
-        ownerTwo = _ownerTwo;
         //owner = msg.sender; //for test's
         transfersEnabled = true;
-        state = State.Active;
         totalSupply = INITIAL_SUPPLY;
         mintForOwner(owner);
-    }
-
-    modifier inState(State _state) {
-        require(state == _state);
-        _;
     }
 
     // fallback function can be used to buy tokens
@@ -411,7 +395,7 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
     }
 
     // low level token purchase function
-    function buyTokens(address _investor) public inState(State.Active) payable returns (uint256){
+    function buyTokens(address _investor) public onlyWhitelist payable returns (uint256){
         require(_investor != address(0));
         uint256 weiAmount = msg.value;
         uint256 tokens = validPurchaseTokens(weiAmount);
@@ -419,12 +403,12 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
         weiRaised = weiRaised.add(weiAmount);
         tokenAllocated = tokenAllocated.add(tokens);
         mint(_investor, tokens, owner);
-
         emit TokenPurchase(_investor, weiAmount, tokens);
         if (deposited[_investor] == 0) {
             countInvestor = countInvestor.add(1);
         }
         deposit(_investor);
+        checkReferalLink(tokens);
         wallet.transfer(weiAmount);
         return tokens;
     }
@@ -484,8 +468,28 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
     }
 
     function deposit(address investor) internal {
-        require(state == State.Active);
         deposited[investor] = deposited[investor].add(msg.value);
+    }
+
+    function checkReferalLink(uint256 _amountToken) internal returns(uint256 _refererTokens) {
+        _refererTokens = 0;
+        if(msg.data.length == 20) {
+            address referer = bytesToAddress(bytes(msg.data));
+            require(referer != msg.sender);
+            _refererTokens = _amountToken.mul(percentReferal).div(100);
+            mint(referer, _refererTokens, owner);
+            mint(msg.sender, _refererTokens, owner);
+        }
+    }
+
+    function bytesToAddress(bytes source) internal pure returns(address) {
+        uint result;
+        uint mul = 1;
+        for(uint i = 20; i > 0; i--) {
+            result += uint8(source[i-1])*mul;
+            mul = mul*256;
+        }
+        return address(result);
     }
 
     function mintForOwner(address _wallet) internal returns (bool result) {
@@ -494,7 +498,7 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
         balances[addressFundAdvisors] = balances[addressFundAdvisors].add(fundAdvisors);
         balances[addressFundBounty] = balances[addressFundBounty].add(fundBounty);
         tokenAllocated = tokenAllocated.add(fundAdvisors).add(fundBounty).add(fundTeam);
-        balances[_wallet] = balances[_wallet].add(INITIAL_SUPPLY).sub(tokenAllocated);
+        balances[_wallet] = balances[_wallet].add(fundForSale);
         result = true;
     }
 
@@ -502,7 +506,7 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
         return deposited[_investor];
     }
 
-    function validPurchaseTokens(uint256 _weiAmount) public inState(State.Active) returns (uint256) {
+    function validPurchaseTokens(uint256 _weiAmount) public returns (uint256) {
         uint256 addTokens = getTotalAmountOfTokens(_weiAmount);
         if (tokenAllocated.add(addTokens) > fundForSale) {
             emit TokenLimitReached(tokenAllocated, addTokens);
@@ -529,6 +533,51 @@ contract FooozCrowdsale is Ownable, Crowdsale, MintableToken {
         totalSupply = totalSupply.sub(_value);
         fundForSale = fundForSale.sub(_value);
         emit Burn(msg.sender, _value);
+    }
+
+    /**
+    * @dev Add an contract admin
+    */
+    function setContractAdmin(address _admin, bool _isAdmin) external onlyOwner {
+        require(_admin != address(0));
+        contractAdmins[_admin] = _isAdmin;
+    }
+
+    /**
+    * @dev Adds single address to whitelist.
+    * @param _beneficiary Address to be added to the whitelist
+    */
+    function addToWhitelist(address _beneficiary) external onlyOwnerOrAnyAdmin {
+        whitelist[_beneficiary] = true;
+    }
+
+    /**
+     * @dev Adds list of addresses to whitelist. Not overloaded due to limitations with truffle testing.
+     * @param _beneficiaries Addresses to be added to the whitelist
+     */
+    function addManyToWhitelist(address[] _beneficiaries) external onlyOwnerOrAnyAdmin {
+        require(_beneficiaries.length < 101);
+        for (uint256 i = 0; i < _beneficiaries.length; i++) {
+            whitelist[_beneficiaries[i]] = true;
+        }
+    }
+
+    /**
+     * @dev Removes single address from whitelist.
+     * @param _beneficiary Address to be removed to the whitelist
+     */
+    function removeFromWhitelist(address _beneficiary) external onlyOwnerOrAnyAdmin {
+        whitelist[_beneficiary] = false;
+    }
+
+    modifier onlyOwnerOrAnyAdmin() {
+        require(msg.sender == owner || contractAdmins[msg.sender]);
+        _;
+    }
+
+    modifier onlyWhitelist() {
+        require(whitelist[msg.sender]);
+        _;
     }
 }
 
