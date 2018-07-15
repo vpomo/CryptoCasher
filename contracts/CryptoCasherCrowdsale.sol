@@ -25,22 +25,6 @@ library SafeMath {
         assert(c >= a);
         return c;
     }
-
-    function max64(uint64 a, uint64 b) internal pure returns (uint64) {
-        return a >= b ? a : b;
-    }
-
-    function min64(uint64 a, uint64 b) internal pure returns (uint64) {
-        return a < b ? a : b;
-    }
-
-    function max256(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a >= b ? a : b;
-    }
-
-    function min256(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a < b ? a : b;
-    }
 }
 
 
@@ -124,9 +108,8 @@ contract StandardToken is ERC20, BasicToken {
 
     mapping (address => mapping (address => uint256)) internal allowed;
 
-    address public addressFundTeam = 0xAdF9C6D6a69d29a466B1B2182144e8B831E09A1e;
+    address public addressFundTeam = 0x7d63D560c994f4cC29c29C85a1bc24E459786a39;
     uint256 public fundTeam = 1125 * 10**4 * (10 ** 18);
-
     uint256 endTimeIco = 1550232000; //Fri, 15 Feb 2019 12:00:00 GMT
 
     /**
@@ -239,14 +222,6 @@ contract Ownable {
     event OwnerChanged(address indexed previousOwner, address indexed newOwner);
 
     /**
-     * @dev The Ownable constructor sets the original `owner` of the contract to the sender
-     * account.
-     */
-    constructor() public {
-    }
-
-
-    /**
      * @dev Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
@@ -351,10 +326,10 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
     uint256 public constant INITIAL_SUPPLY = 75 * 10**6 * (10 ** uint256(decimals));
     uint256 public fundForSale = 525 * 10**5 * (10 ** uint256(decimals));
 
-    address public addressFundAdvisors = 0xAdF9C6D6a69d29a466B1B2182144e8B831E09A1e;
+    address public addressFundAdvisors = 0x443a9477BaD71137e7914672831298cc514f4Ce4;
     uint256 public fundAdvisors = 75 * 10**5 * (10 ** uint256(decimals));
 
-    address public addressFundBounty = 0xAdF9C6D6a69d29a466B1B2182144e8B831E09A1e;
+    address public addressFundBounty = 0x32D5b0432E770838d3632bf0fca60bFDF283c299;
     uint256 public fundBounty = 375 * 10**4 * (10 ** uint256(decimals));
 
     uint256[] public discount  = [200, 150, 100, 75, 50, 25];
@@ -365,7 +340,7 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
     uint256 priceTokenPrivate = 1250;
 
     uint256 public countInvestor;
-    uint256 public percentReferal = 5;
+    uint256 percentReferal = 5;
 
     event TokenPurchase(address indexed beneficiary, uint256 value, uint256 amount);
     event TokenLimitReached(uint256 tokenRaised, uint256 purchasedToken);
@@ -423,9 +398,6 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
         }
         if(0 < currentPeriod && currentPeriod < 6){
             amountOfTokens = _weiAmount.mul(priceToken).mul(discount[currentPeriod] + 1000).div(1000);
-        }
-        if(currentPeriod == 10){
-            amountOfTokens = 0;
         }
         return amountOfTokens;
     }
@@ -497,13 +469,10 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
         require(_wallet != address(0));
         balances[addressFundAdvisors] = balances[addressFundAdvisors].add(fundAdvisors);
         balances[addressFundBounty] = balances[addressFundBounty].add(fundBounty);
+        balances[addressFundTeam] = balances[addressFundTeam].add(fundTeam);
         tokenAllocated = tokenAllocated.add(fundAdvisors).add(fundBounty).add(fundTeam);
         balances[_wallet] = balances[_wallet].add(fundForSale);
         result = true;
-    }
-
-    function getDeposited(address _investor) public view returns (uint256){
-        return deposited[_investor];
     }
 
     function validPurchaseTokens(uint256 _weiAmount) public returns (uint256) {

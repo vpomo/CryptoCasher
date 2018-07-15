@@ -68,7 +68,7 @@ it('should deployed contract', async ()  => {
         assert.equal(0, weiRaisedBefore);
         assert.equal(buyWei, weiRaisedAfter);
 
-        var depositedAfter = await contract.getDeposited.call(accounts[2]);
+        var depositedAfter = await contract.deposited.call(accounts[2]);
         //console.log("DepositedAfter = " + depositedAfter);
         assert.equal(buyWei, depositedAfter);
 
