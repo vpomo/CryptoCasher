@@ -108,7 +108,7 @@ contract StandardToken is ERC20, BasicToken {
 
     mapping (address => mapping (address => uint256)) internal allowed;
 
-    address public addressFundTeam = 0x7d63D560c994f4cC29c29C85a1bc24E459786a39;
+    address public addressFundTeam = 0x0DA34504b759071605f89BE43b2804b1869404f2;
     uint256 public fundTeam = 1125 * 10**4 * (10 ** 18);
     uint256 endTimeIco = 1550232000; //Fri, 15 Feb 2019 12:00:00 GMT
 
@@ -188,23 +188,23 @@ contract StandardToken is ERC20, BasicToken {
     function checkVesting(uint256 _value, uint256 _currentTime) public view returns(uint8 period) {
         period = 0;
         require(endTimeIco <= _currentTime);
-        if (endTimeIco <= _currentTime && _currentTime < endTimeIco + 26 weeks) {
+        if (endTimeIco + 26 weeks <= _currentTime && _currentTime < endTimeIco + 52 weeks) {
             period = 1;
             require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(95).div(100));
         }
-        if (endTimeIco + 26 weeks <= _currentTime && _currentTime < endTimeIco + 52 weeks) {
+        if (endTimeIco + 52 weeks <= _currentTime && _currentTime < endTimeIco + 78 weeks) {
             period = 2;
             require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(85).div(100));
         }
-        if (endTimeIco + 52 weeks <= _currentTime && _currentTime < endTimeIco + 78 weeks) {
+        if (endTimeIco + 78 weeks <= _currentTime && _currentTime < endTimeIco + 104 weeks) {
             period = 3;
             require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(65).div(100));
         }
-        if (endTimeIco + 78 weeks <= _currentTime && _currentTime < endTimeIco + 104 weeks) {
+        if (endTimeIco + 104 weeks <= _currentTime && _currentTime < endTimeIco + 130 weeks) {
             period = 4;
             require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(35).div(100));
         }
-        if (endTimeIco + 104 weeks <= _currentTime) {
+        if (endTimeIco + 130 weeks <= _currentTime) {
             period = 5;
             require(balances[addressFundTeam].sub(_value) >= 0);
         }
@@ -322,19 +322,23 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
     mapping(address => bool) public whitelist;
     // List of admins
     mapping (address => bool) public contractAdmins;
+    mapping (address => uint256) public paidTokens;
 
     uint256 public constant INITIAL_SUPPLY = 75 * 10**6 * (10 ** uint256(decimals));
     uint256 public fundForSale = 525 * 10**5 * (10 ** uint256(decimals));
 
-    address public addressFundAdvisors = 0x443a9477BaD71137e7914672831298cc514f4Ce4;
-    uint256 public fundAdvisors = 75 * 10**5 * (10 ** uint256(decimals));
+    address public addressFundAdvisors = 0xee3b4F0A6EA27cCDA45f2F58982EA54c5d7E8570;
+    uint256 public fundAdvisors = 6 * 10**6 * (10 ** uint256(decimals));
 
-    address public addressFundBounty = 0x32D5b0432E770838d3632bf0fca60bFDF283c299;
-    uint256 public fundBounty = 375 * 10**4 * (10 ** uint256(decimals));
+    address public addressFundBounty = 0x97133480b61377A93dF382BebDFC3025D56bA2C6;
+    uint256 public fundBounty = 525 * 10**4 * (10 ** uint256(decimals));
 
-    uint256[] public discount  = [200, 150, 100, 75, 50, 25];
+    address public nonKYCReservFund = 0x0DA34504b759071605f89BE43b2804b1869404f2;
 
-    uint256 public weiMinSalePrivate = 10 ether;
+    uint256[] public discount  = [200, 150, 75, 50, 25, 10];
+
+    uint256 weiMinSalePrivate = 10 ether;
+    uint256 weiMinSale = 0.01 ether;
 
     uint256 priceToken = 1000;
     uint256 priceTokenPrivate = 1250;
@@ -370,14 +374,19 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
     }
 
     // low level token purchase function
-    function buyTokens(address _investor) public onlyWhitelist payable returns (uint256){
+    function buyTokens(address _investor) public payable returns (uint256){
         require(_investor != address(0));
         uint256 weiAmount = msg.value;
         uint256 tokens = validPurchaseTokens(weiAmount);
         if (tokens == 0) {revert();}
         weiRaised = weiRaised.add(weiAmount);
         tokenAllocated = tokenAllocated.add(tokens);
-        mint(_investor, tokens, owner);
+        if(whitelist[_investor]) {
+            mint(_investor, tokens, owner);
+        } else {
+            mint(nonKYCReservFund, tokens, owner);
+            paidTokens[_investor] = paidTokens[_investor].add(tokens);
+        }
         emit TokenPurchase(_investor, weiAmount, tokens);
         if (deposited[_investor] == 0) {
             countInvestor = countInvestor.add(1);
@@ -396,46 +405,38 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
         if(currentPeriod == 0 && _weiAmount >= weiMinSalePrivate){
             amountOfTokens = _weiAmount.mul(priceTokenPrivate).mul(discount[0] + 1000).div(1000);
         }
-        if(0 < currentPeriod && currentPeriod < 6){
+        if(0 < currentPeriod && currentPeriod < 5 && _weiAmount >= weiMinSale){
             amountOfTokens = _weiAmount.mul(priceToken).mul(discount[currentPeriod] + 1000).div(1000);
         }
         return amountOfTokens;
     }
 
-    /**
-    * Pre-ICO sale starts on 01 of Jul, ends on 05 Jul 2018
-    * 0 Stage starts before 15 of Sep, 2018
-    * 1 Stage starts 15 of Sep, ends on 15 of Oct , 2018
-    * 2 Stage starts 16 of Oct, ends on 15 of Nov , 2018
-    * 3 Stage starts 16 of Nov, ends on 15 of Dec , 2018
-    * 4 Stage starts 16 of Dec, ends on 15  of Jan , 2019
-    * 5 Stage starts 16 of Jan, ends on 15  of Feb , 2019
-    */
     function getPeriod(uint256 _currentDate) public pure returns (uint) {
-        //before Sep, 15, 2018 12:00:00
-        if(_currentDate <= 1537012800){
+        //1536570000 - Mon, 10 Sep 2018 09:00:00 GMT && 1536580800 - Mon, 10 Sep 2018 12:00:00 GMT
+        if( 1536570000 <= _currentDate && _currentDate <= 1536580800){
             return 0;
         }
-        //1530403200 - Sep, 15, 2018 12:00:01 && 1530835199 - Oct, 15, 2018 12:00:00
-        if( 1537012801 <= _currentDate && _currentDate <= 1539604800){
+        //1536580801 - Mon, 10 Sep 2018 12:00:00 GMT && 1539180000 - Wed, 10 Oct 2018 14:00:00 GMT
+        if( 1536580801 <= _currentDate && _currentDate <= 1539180000){
             return 1;
         }
-        //1530835200 - Oct, 15, 2018 12:00:01 && 1531699199 - Nov, 15, 2018 12:00:00
-        if( 1539604801 <= _currentDate && _currentDate <= 1542283200){
+        //1540198800 - Mon, 22 Oct 2018 09:00:00 GMT && 1542877200 - Thu, 22 Nov 2018 09:00:00 GMT
+        if( 1540198800 <= _currentDate && _currentDate <= 1542877200){
             return 2;
         }
-        //1531699200 - Nov, 15, 2018 12:00:01 && 1532563199 - Dec, 15, 2018 12:00:00
-        if( 1542283201 <= _currentDate && _currentDate <= 1544875200){
+        //1542877201 - Thu, 22 Nov 2018 09:00:01 GMT && 1545469200 - Sat, 22 Dec 2018 09:00:00 GMT
+        if( 1542877201 <= _currentDate && _currentDate <= 1545469200){
             return 3;
         }
-        //1532563200 - Dec, 15, 2018 12:00:00 && 1533513599 - Jan,   15, 2018 12:00:00
-        if( 1544875201 <= _currentDate && _currentDate <= 1547553600){
+        //1545469201 - Sat, 22 Dec 2018 09:00:01 GMT && 1548147600 - Tue, 22 Jan 2019 09:00:00 GMT
+        if( 1545469201 <= _currentDate && _currentDate <= 1548147600){
             return 4;
         }
-        //1533513600 - Jan,   15, 2018 12:00:00 && 1534377599 - Feb,   15, 2018 12:00:00
-        if( 1547553601 <= _currentDate && _currentDate <= 1550232000){
+        //1548147601 - Tue, 22 Jan 2019 09:00:01 GMT && 1550826000 - Fri, 22 Feb 2019 09:00:00 GMT
+        if( 1548147601 <= _currentDate && _currentDate <= 1550826000){
             return 5;
         }
+
         return 10;
     }
 
@@ -540,13 +541,26 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
     }
 
     modifier onlyOwnerOrAnyAdmin() {
-        require(msg.sender == owner || contractAdmins[msg.sender]);
+        require(msg.sender == owner || contractAdmins[msg.sender] || msg.sender == nonKYCReservFund);
         _;
     }
 
-    modifier onlyWhitelist() {
-        require(whitelist[msg.sender]);
-        _;
+    function batchTransferPaidTokens(address[] _recipients, uint256[] _values) external returns (bool) {
+        require(msg.sender == nonKYCReservFund);
+        require( _recipients.length > 0 && _recipients.length == _values.length);
+        uint256 total = 0;
+        for(uint i = 0; i < _values.length; i++){
+            total = total.add(_values[i]);
+        }
+        require(total <= balanceOf(msg.sender));
+        for(uint j = 0; j < _recipients.length; j++){
+            transfer(_recipients[j], _values[j]);
+            require(0 <= _values[j]);
+            require(_values[j] <= paidTokens[_recipients[j]]);
+            paidTokens[_recipients[j]].sub(_values[j]);
+            emit Transfer(msg.sender, _recipients[j], _values[j]);
+        }
+        return true;
     }
 }
 
