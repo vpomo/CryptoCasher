@@ -333,7 +333,8 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
     address public addressFundBounty = 0x97133480b61377A93dF382BebDFC3025D56bA2C6;
     uint256 public fundBounty = 525 * 10**4 * (10 ** uint256(decimals));
 
-    address public nonKYCReservFund = 0x0DA34504b759071605f89BE43b2804b1869404f2;
+    address public fundNonKYCReserv = 0x0DA34504b759071605f89BE43b2804b1869404f2;
+    address public fundBlchainReferal = 0x2F9092Fe1dACafF1165b080BfF3afFa6165e339a;
 
     uint256[] public discount  = [200, 150, 75, 50, 25, 10];
 
@@ -384,7 +385,7 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
         if(whitelist[_investor]) {
             mint(_investor, tokens, owner);
         } else {
-            mint(nonKYCReservFund, tokens, owner);
+            mint(fundNonKYCReserv, tokens, owner);
             paidTokens[_investor] = paidTokens[_investor].add(tokens);
         }
         emit TokenPurchase(_investor, weiAmount, tokens);
@@ -450,8 +451,10 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
             address referer = bytesToAddress(bytes(msg.data));
             require(referer != msg.sender);
             _refererTokens = _amountToken.mul(percentReferal).div(100);
-            mint(referer, _refererTokens, owner);
-            mint(msg.sender, _refererTokens, owner);
+            if(balances[fundBlchainReferal] >= _refererTokens.mul(2)) {
+                mint(referer, _refererTokens, fundBlchainReferal);
+                mint(msg.sender, _refererTokens, fundBlchainReferal);
+            }
         }
     }
 
@@ -541,7 +544,7 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale, MintableToken {
     }
 
     modifier onlyOwnerOrAnyAdmin() {
-        require(msg.sender == owner || contractAdmins[msg.sender] || msg.sender == nonKYCReservFund);
+        require(msg.sender == owner || contractAdmins[msg.sender] || msg.sender == fundNonKYCReserv);
         _;
     }
 
