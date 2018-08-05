@@ -89,12 +89,12 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
     // List of admins
     mapping (address => bool) public contractAdmins;
     mapping (address => uint256) public paidTokens;
-    uint8 public constant decimals = 18;
+    uint8 constant decimals = 18;
 
-    uint256 public fundForSale = 525 * 10**5 * (10 ** uint256(decimals));
+    uint256 fundForSale = 525 * 10**5 * (10 ** uint256(decimals));
 
-    address public addressFundNonKYCReserv = 0x7AEcFB881B6Ff010E4b7fb582C562aa3FCCb2170;
-    address public addressFundBlchainReferal = 0x2F9092Fe1dACafF1165b080BfF3afFa6165e339a;
+    address addressFundNonKYCReserv = 0x7AEcFB881B6Ff010E4b7fb582C562aa3FCCb2170;
+    address addressFundBlchainReferal = 0x2F9092Fe1dACafF1165b080BfF3afFa6165e339a;
 
     uint256[] discount  = [150, 200, 150, 75, 50, 25, 10];
 
@@ -121,7 +121,7 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
         require(_owner != address(0));
         require(_wallet != address(0));
         owner = _owner;
-        owner = msg.sender; //for test's
+        //owner = msg.sender; //for test's
 
         tokenAllocated = tokenAllocated.add(fundAdvisors).add(fundBountyRefferal).add(fundTeam);
     }
@@ -168,7 +168,7 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
 
     function getTotalAmountOfTokens(uint256 _weiAmount) internal view returns (uint256) {
         uint256 currentDate = now;
-        currentDate = 1548428400; //Fri, 25 Jan 2019 15:00:00 GMT
+        //currentDate = 1548428400; //for test's Fri, 25 Jan 2019 15:00:00 GMT
         uint256 currentPeriod = getPeriod(currentDate);
         uint256 amountOfTokens = 0;
         if(0 < currentPeriod && currentPeriod < 7 && _weiAmount >= weiMinSale){

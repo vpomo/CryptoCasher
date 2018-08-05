@@ -268,7 +268,7 @@ constructor (address _owner) public
     {
         require(_owner != address(0));
         owner = _owner;
-        owner = msg.sender; //for test's
+        //owner = msg.sender; //for test's
         transfersEnabled = true;
         distribToken(owner);
         totalSupply = INITIAL_SUPPLY;
