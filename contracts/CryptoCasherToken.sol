@@ -67,6 +67,10 @@ contract BasicToken is ERC20Basic {
 
     mapping (address => uint256) balances;
 
+    address public addressFundTeam = 0x0DA34504b759071605f89BE43b2804b1869404f2;
+    uint256 public fundTeam = 1125 * 10**4 * (10 ** 18);
+    uint256 endTimeIco = 1550826000; //Fri, 22 Feb 2019 09:00:00 GMT
+
     /**
     * Protection against short address attack
     */
@@ -84,6 +88,9 @@ contract BasicToken is ERC20Basic {
         require(_to != address(0));
         require(_value <= balances[msg.sender]);
         require(transfersEnabled);
+        if (msg.sender == addressFundTeam) {
+            require(checkVesting(_value, now) > 0);
+        }
 
         // SafeMath.sub will throw if there is not enough balance.
         balances[msg.sender] = balances[msg.sender].sub(_value);
@@ -101,16 +108,36 @@ contract BasicToken is ERC20Basic {
         return balances[_owner];
     }
 
+    function checkVesting(uint256 _value, uint256 _currentTime) public view returns(uint8 period) {
+        period = 0;
+        require(endTimeIco <= _currentTime);
+        if (endTimeIco + 26 weeks <= _currentTime && _currentTime < endTimeIco + 52 weeks) {
+            period = 1;
+            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(95).div(100));
+        }
+        if (endTimeIco + 52 weeks <= _currentTime && _currentTime < endTimeIco + 78 weeks) {
+            period = 2;
+            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(85).div(100));
+        }
+        if (endTimeIco + 78 weeks <= _currentTime && _currentTime < endTimeIco + 104 weeks) {
+            period = 3;
+            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(65).div(100));
+        }
+        if (endTimeIco + 104 weeks <= _currentTime && _currentTime < endTimeIco + 130 weeks) {
+            period = 4;
+            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(35).div(100));
+        }
+        if (endTimeIco + 130 weeks <= _currentTime) {
+            period = 5;
+            require(balances[addressFundTeam].sub(_value) >= 0);
+        }
+    }
 }
 
 
 contract StandardToken is ERC20, BasicToken {
 
     mapping (address => mapping (address => uint256)) internal allowed;
-
-    address public addressFundTeam = 0x0DA34504b759071605f89BE43b2804b1869404f2;
-    uint256 public fundTeam = 1125 * 10**4 * (10 ** 18);
-    uint256 endTimeIco = 1550826000; //Fri, 22 Feb 2019 09:00:00 GMT
 
     /**
      * @dev Transfer tokens from one address to another
@@ -120,10 +147,6 @@ contract StandardToken is ERC20, BasicToken {
      */
     function transferFrom(address _from, address _to, uint256 _value) public onlyPayloadSize(3) returns (bool) {
         require(_to != address(0));
-        if (msg.sender == addressFundTeam) {
-            require(checkVesting(_value, now) > 0);
-        }
-
         require(_value <= balances[_from]);
         require(_value <= allowed[_from][msg.sender]);
         require(transfersEnabled);
@@ -185,30 +208,6 @@ contract StandardToken is ERC20, BasicToken {
         return true;
     }
 
-    function checkVesting(uint256 _value, uint256 _currentTime) public view returns(uint8 period) {
-        period = 0;
-        require(endTimeIco <= _currentTime);
-        if (endTimeIco + 26 weeks <= _currentTime && _currentTime < endTimeIco + 52 weeks) {
-            period = 1;
-            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(95).div(100));
-        }
-        if (endTimeIco + 52 weeks <= _currentTime && _currentTime < endTimeIco + 78 weeks) {
-            period = 2;
-            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(85).div(100));
-        }
-        if (endTimeIco + 78 weeks <= _currentTime && _currentTime < endTimeIco + 104 weeks) {
-            period = 3;
-            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(65).div(100));
-        }
-        if (endTimeIco + 104 weeks <= _currentTime && _currentTime < endTimeIco + 130 weeks) {
-            period = 4;
-            require(balances[addressFundTeam].sub(_value) >= fundTeam.mul(35).div(100));
-        }
-        if (endTimeIco + 130 weeks <= _currentTime) {
-            period = 5;
-            require(balances[addressFundTeam].sub(_value) >= 0);
-        }
-    }
 }
 
 
@@ -244,18 +243,21 @@ contract CryptoCasherToken is StandardToken, Ownable {
     uint8 public constant decimals = 18;
     uint256 public constant INITIAL_SUPPLY = 75 * 10**6 * (10 ** uint256(decimals));
 
+    uint256 fundForSale = 525 * 10**5 * (10 ** uint256(decimals));
+
     address addressFundAdvisors = 0xee3b4F0A6EA27cCDA45f2F58982EA54c5d7E8570;
     uint256 fundAdvisors = 6 * 10**6 * (10 ** uint256(decimals));
 
     address addressFundBounty = 0x97133480b61377A93dF382BebDFC3025D56bA2C6;
-    uint256 fundBounty = 525 * 10**4 * (10 ** uint256(decimals));
+    uint256 fundBounty = 375 * 10**4 * (10 ** uint256(decimals));
 
-    address addressFundNonKYCReserv = 0x0DA34504b759071605f89BE43b2804b1869404f2;
     address addressFundBlchainReferal = 0x2F9092Fe1dACafF1165b080BfF3afFa6165e339a;
+    uint256 fundBlchainReferal = 75 * 10**4 * (10 ** uint256(decimals));
+
+    address addressFundWebSiteReferal = 0x45E2203eD8bD3888D052F4CF37ac91CF6563789D;
+    uint256 fundWebSiteReferal = 75 * 10**4 * (10 ** uint256(decimals));
+
     address addressContract;
-
-    uint256 fundForSale = 525 * 10**5 * (10 ** uint256(decimals));
-
 
     event Mint(address indexed to, uint256 amount);
     event Burn(address indexed burner, uint256 value);
@@ -268,7 +270,7 @@ constructor (address _owner) public
         owner = _owner;
         owner = msg.sender; //for test's
         transfersEnabled = true;
-        mintForOwner(owner);
+        distribToken(owner);
         totalSupply = INITIAL_SUPPLY;
     }
 
@@ -320,14 +322,18 @@ constructor (address _owner) public
         emit Transfer(_token, owner, balance);
     }
 
-    function mintForOwner(address _wallet) internal returns (bool result) {
-        result = false;
+    function distribToken(address _wallet) internal {
         require(_wallet != address(0));
+
         balances[addressFundAdvisors] = balances[addressFundAdvisors].add(fundAdvisors);
-        balances[addressFundBounty] = balances[addressFundBounty].add(fundBounty);
+
         balances[addressFundTeam] = balances[addressFundTeam].add(fundTeam);
+
+        balances[addressFundBounty] = balances[addressFundBounty].add(fundBounty);
+        balances[addressFundBlchainReferal] = balances[addressFundBlchainReferal].add(fundBlchainReferal);
+        balances[addressFundWebSiteReferal] = balances[addressFundWebSiteReferal].add(fundWebSiteReferal);
+
         balances[_wallet] = balances[_wallet].add(fundForSale);
-        result = true;
     }
 
     /**
@@ -341,7 +347,7 @@ constructor (address _owner) public
         require(_value <= fundForSale);
 
         balances[owner] = balances[owner].sub(_value);
-        fundForSale = fundForSale.sub(_value);
+        totalSupply = totalSupply.sub(_value);
         emit Burn(msg.sender, _value);
     }
 }

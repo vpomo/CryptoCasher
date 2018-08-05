@@ -19,16 +19,13 @@ contract('CryptoCasherToken', (accounts) => {
 
 contract('CryptoCasherCrowdsale', (accounts) => {
     var contract;
-    //var owner = "0x6d2Faf6A5706bCC104E9C001f0Af585c11F72437";
     var owner = accounts[0];
-    var rate = 1000*1.15;
+    var rate = 714*1.01;
     var buyWei = 1 * 10**18;
-    var rateNew = 1000*1.15;
+    var rateNew = 714*1.01;
     var buyWeiNew = 5 * 10**17;
     var buyWeiMin = 1 * 10**16;
     var buyWeiCap = 35000 * (10e18);
-
-    var period = 0;
 
     var fundForSale = Number(525 * 10**23);
     var tokenAllocated = Number(225 * 10**23);
@@ -58,7 +55,7 @@ contract('CryptoCasherCrowdsale', (accounts) => {
     });
 
     it('verification of receiving Ether', async ()  => {
-/*
+
         await contract.addToWhitelist(accounts[2], {from:accounts[0]});
         await contract.addToWhitelist(accounts[3], {from:accounts[0]});
         var isWhiteList = await contract.whitelist.call(accounts[2]);
@@ -106,65 +103,78 @@ contract('CryptoCasherCrowdsale', (accounts) => {
         var balanceOwnerAfter = await contract.balanceOf(owner);
         //console.log("balanceOwnerAfter = " + Number(balanceOwnerAfter));
         //assert.equal(totalSupply - balanceAccountThreeAfter - balanceAccountTwoAfter, balanceOwnerAfter);
-*/
     });
 
     it('verification define ICO period', async ()  => {
-/*
         currentDate = 1534766400; // Aug, 20
+        period = await contract.getPeriod(currentDate);
+        assert.equal(10, period);
+
+        currentDate = 1536573600; // Mon, 10 Sep 2018 10:00:00 GMT
         period = await contract.getPeriod(currentDate);
         assert.equal(0, period);
 
-        currentDate = 1537444800; // Sep, 20
+        currentDate = 1536591600; // Mon, 10 Sep 2018 15:00:00 GMT
         period = await contract.getPeriod(currentDate);
         assert.equal(1, period);
 
-        currentDate = 1540036800; // Oct, 20
+        currentDate = 1536764400; // Wed, 12 Sep 2018 15:00:00 GMT
         period = await contract.getPeriod(currentDate);
         assert.equal(2, period);
 
-        currentDate = 1542715200; // Nov, 20
+        currentDate = 1540479600; // Thu, 25 Oct 2018 15:00:00 GMT
         period = await contract.getPeriod(currentDate);
         assert.equal(3, period);
 
-        currentDate = 1545307200; // Dec, 20
+        currentDate = 1543158000; // Sun, 25 Nov 2018 15:00:00 GMT
         period = await contract.getPeriod(currentDate);
         assert.equal(4, period);
 
-        currentDate = 1547985600; // Jan, 20
+        currentDate = 1545750000; // Tue, 25 Dec 2018 15:00:00 GMT
         period = await contract.getPeriod(currentDate);
         assert.equal(5, period);
 
-        currentDate = 1550664000; // Feb, 20
+        currentDate = 1548428400; // Fri, 25 Jan 2019 15:00:00 GMT
+        period = await contract.getPeriod(currentDate);
+        assert.equal(6, period);
+
+
+        currentDate = 1553526000; // Mon, 25 Mar 2019 15:00:00 GMT
         period = await contract.getPeriod(currentDate);
         assert.equal(10, period);
-*/
     });
 
     it('check vesting period', async ()  => {
-        var currentDate = 1550664000; // Feb, 20, 2019
+        var currentDate = 1552219200; // Mar, 10, 2019
         var vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
+        assert.equal(0, vestingPeriod);
+
+        currentDate = 1568116800; // Sep, 10, 2019
+        vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
         assert.equal(1, vestingPeriod);
 
-        var currentDate = 1566302400; // Aug, 20, 2019
-        var vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
+        currentDate = 1583841600; // Mar, 10, 2020
+        vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
         assert.equal(2, vestingPeriod);
 
-        var currentDate = 1582200000; // Feb, 20, 2020
-        var vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
+        currentDate = 1599739200; // Sep, 10, 2020
+        vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
         assert.equal(3, vestingPeriod);
 
-        var currentDate = 1597924800; // Aug, 20, 2020
-        var vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
+        currentDate = 1615377600; // Mar, 10, 2021
+        vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
         assert.equal(4, vestingPeriod);
 
-        var currentDate = 1613822400; // Feb, 20, 2021
-        var vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
+        currentDate = 1631275200; // Sep, 10, 2021
+        vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
+        assert.equal(5, vestingPeriod);
+
+        currentDate = 1646913600; // Mar, 10, 2022
+        vestingPeriod = await contractToken.checkVesting(buyWeiMin, currentDate);
         assert.equal(5, vestingPeriod);
     });
 
     it('verification tokens cap reached', async ()  => {
-/*
             var numberTokensNormal = await contract.validPurchaseTokens.call(buyWei);
             //console.log("numberTokensNormal = " + numberTokensNormal);
             assert.equal(rate*buyWei, numberTokensNormal);
@@ -172,8 +182,21 @@ contract('CryptoCasherCrowdsale', (accounts) => {
             var numberTokensFault = await contract.validPurchaseTokens.call(buyWeiCap);
             //console.log("numberTokensFault = " + numberTokensFault);
             assert.equal(0, numberTokensFault);
-*/
     });
+
+    it('verification non whitelist purchaise', async ()  => {
+        var addressFundNonKYCBefore = "0x7AEcFB881B6Ff010E4b7fb582C562aa3FCCb2170";
+        var balanceAccountSevenBefore = await contract.balanceOf(accounts[7]);
+        var balanceFundNonKYCBefore = await contract.balanceOf(addressFundNonKYCBefore);
+        await contract.buyTokens(accounts[7],{from:accounts[7], value:buyWei});
+        var balanceAccountSevenAfter = await contract.balanceOf(accounts[7]);
+        assert.equal(0, balanceAccountSevenAfter);
+        assert.equal(0, balanceAccountSevenBefore);
+
+        var balanceFundNonKYCAfter = await contract.balanceOf(addressFundNonKYCBefore);
+        assert.equal(rate*buyWei, balanceFundNonKYCAfter);
+    });
+
 });
 
 

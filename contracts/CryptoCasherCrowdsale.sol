@@ -72,6 +72,8 @@ contract Crowdsale is Ownable {
 
 interface IContractErc20Token {
     function transfer(address _to, uint256 _value) external returns (bool success);
+    function transferFrom(address _from, address _to, uint256 _value) external returns (bool);
+
     function balanceOf(address _owner) external constant returns (uint256 balance);
     function mint(address _to, uint256 _amount, address _owner) external returns (bool);
 }
@@ -91,10 +93,10 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
 
     uint256 public fundForSale = 525 * 10**5 * (10 ** uint256(decimals));
 
-    address public addressFundNonKYCReserv = 0x0DA34504b759071605f89BE43b2804b1869404f2;
+    address public addressFundNonKYCReserv = 0x7AEcFB881B6Ff010E4b7fb582C562aa3FCCb2170;
     address public addressFundBlchainReferal = 0x2F9092Fe1dACafF1165b080BfF3afFa6165e339a;
 
-    uint256[] public discount  = [200, 150, 75, 50, 25, 10];
+    uint256[] discount  = [150, 200, 150, 75, 50, 25, 10];
 
     uint256 weiMinSale = 0.1 ether;
 
@@ -106,13 +108,14 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
     event TokenPurchase(address indexed beneficiary, uint256 value, uint256 amount);
     event TokenLimitReached(uint256 tokenRaised, uint256 purchasedToken);
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
+    event NonWhitelistPurchase(address indexed _buyer, uint256 _tokens);
     event HardCapReached();
 
     constructor (address _owner, address _wallet) public
     Crowdsale(_wallet)
     {
         uint256 fundAdvisors = 6 * 10**6 * (10 ** uint256(decimals));
-        uint256 fundBounty = 525 * 10**4 * (10 ** uint256(decimals));
+        uint256 fundBountyRefferal = 525 * 10**4 * (10 ** uint256(decimals));
         uint256 fundTeam = 1125 * 10**4 * (10 ** 18);
 
         require(_owner != address(0));
@@ -120,7 +123,7 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
         owner = _owner;
         owner = msg.sender; //for test's
 
-        tokenAllocated = tokenAllocated.add(fundAdvisors).add(fundBounty).add(fundTeam);
+        tokenAllocated = tokenAllocated.add(fundAdvisors).add(fundBountyRefferal).add(fundTeam);
     }
 
     function setContractErc20Token(address _addressContract) public {
@@ -151,6 +154,7 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
         } else {
             tokenContract.mint(addressFundNonKYCReserv, tokens, owner);
             paidTokens[_investor] = paidTokens[_investor].add(tokens);
+            emit NonWhitelistPurchase(_investor, tokens);
         }
         emit TokenPurchase(_investor, weiAmount, tokens);
         if (deposited[_investor] == 0) {
@@ -164,42 +168,44 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
 
     function getTotalAmountOfTokens(uint256 _weiAmount) internal view returns (uint256) {
         uint256 currentDate = now;
-        currentDate = 1536580802; //for test's (Mon, 10 Sep 2018 12:00:02 GMT)
+        currentDate = 1548428400; //Fri, 25 Jan 2019 15:00:00 GMT
         uint256 currentPeriod = getPeriod(currentDate);
         uint256 amountOfTokens = 0;
-        if(currentPeriod == 0 && _weiAmount >= weiMinSale){
-            amountOfTokens = _weiAmount.mul(priceToken).mul(discount[0] + 1000).div(1000);
-        }
-        if(0 < currentPeriod && currentPeriod < 5 && _weiAmount >= weiMinSale){
+        if(0 < currentPeriod && currentPeriod < 7 && _weiAmount >= weiMinSale){
             amountOfTokens = _weiAmount.mul(priceToken).mul(discount[currentPeriod] + 1000).div(1000);
         }
         return amountOfTokens;
     }
 
     function getPeriod(uint256 _currentDate) public pure returns (uint) {
-        //1536570000 - Mon, 10 Sep 2018 09:00:00 GMT && 1536580800 - Mon, 10 Sep 2018 12:00:00 GMT
+        //1536570000 - Mon, 10 Sep 2018 09:00:00 GMT && 1536580800 - Mon, 10 Sep 2018 14:00:00 GMT
         if( 1536570000 <= _currentDate && _currentDate <= 1536580800){
             return 0;
         }
-        //1536580801 - Mon, 10 Sep 2018 12:00:00 GMT && 1539180000 - Wed, 10 Oct 2018 14:00:00 GMT
-        if( 1536580801 <= _currentDate && _currentDate <= 1539180000){
+        //1536580801 - Mon, 10 Sep 2018 14:00:01 GMT && 1536598800 - Wed, 10 Sep 2018 17:00:00 GMT
+        if( 1536580801 <= _currentDate && _currentDate <= 1536598800){
             return 1;
         }
-        //1540198800 - Mon, 22 Oct 2018 09:00:00 GMT && 1542877200 - Thu, 22 Nov 2018 09:00:00 GMT
-        if( 1540198800 <= _currentDate && _currentDate <= 1542877200){
+        //1536598801 - Mon, 10 Sep 2018 17:00:01 GMT && 1539190800 - Wed, 10 Oct 2018 17:00:00 GMT
+        if( 1536598801 <= _currentDate && _currentDate <= 1539190800){
             return 2;
+        }
+
+        //1536598801 - Mon, 22 Oct 2018 09:00:00 GMT && 1542877200 - Thu, 22 Nov 2018 09:00:00 GMT
+        if( 1536598801 <= _currentDate && _currentDate <= 1542877200){
+            return 3;
         }
         //1542877201 - Thu, 22 Nov 2018 09:00:01 GMT && 1545469200 - Sat, 22 Dec 2018 09:00:00 GMT
         if( 1542877201 <= _currentDate && _currentDate <= 1545469200){
-            return 3;
+            return 4;
         }
         //1545469201 - Sat, 22 Dec 2018 09:00:01 GMT && 1548147600 - Tue, 22 Jan 2019 09:00:00 GMT
         if( 1545469201 <= _currentDate && _currentDate <= 1548147600){
-            return 4;
+            return 5;
         }
         //1548147601 - Tue, 22 Jan 2019 09:00:01 GMT && 1550826000 - Fri, 22 Feb 2019 09:00:00 GMT
         if( 1548147601 <= _currentDate && _currentDate <= 1550826000){
-            return 5;
+            return 6;
         }
 
         return 10;
@@ -285,8 +291,27 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
         _;
     }
 
-    function batchTransferPaidTokens(address[] _recipients, uint256[] _values) external returns (bool) {
+    /**
+     * Peterson's Law Protection
+     * Claim tokens
+     */
+    function claimTokens(address _token) public onlyOwner {
+        if (_token == 0x0) {
+            owner.transfer(address(this).balance);
+            return;
+        }
+
+        uint256 balance = tokenContract.balanceOf(this);
+        tokenContract.transfer(owner, balance);
+        emit Transfer(_token, owner, balance);
+    }
+
+    modifier onlyFundNonKYCReserv() {
         require(msg.sender == addressFundNonKYCReserv);
+        _;
+    }
+
+    function batchTransferPaidTokens(address[] _recipients, uint256[] _values) external onlyFundNonKYCReserv returns (bool) {
         require( _recipients.length > 0 && _recipients.length == _values.length);
         uint256 total = 0;
         for(uint i = 0; i < _values.length; i++){
@@ -297,10 +322,20 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
             require(0 <= _values[j]);
             require(_values[j] <= paidTokens[_recipients[j]]);
             paidTokens[_recipients[j]].sub(_values[j]);
-            tokenContract.transfer(_recipients[j], _values[j]);
+            tokenContract.transferFrom(addressFundNonKYCReserv, _recipients[j], _values[j]);
             emit Transfer(msg.sender, _recipients[j], _values[j]);
         }
         return true;
+    }
+
+    function balanceOf(address _owner) public view returns (uint256) {
+        require(_owner != address(0));
+        return tokenContract.balanceOf(_owner);
+    }
+
+    function balanceOfNonKYC(address _owner) public view returns (uint256) {
+        require(_owner != address(0));
+        return paidTokens[_owner];
     }
 }
 
