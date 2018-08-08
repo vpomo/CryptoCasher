@@ -171,7 +171,7 @@ contract CryptoCasherCrowdsale is Ownable, Crowdsale {
         //currentDate = 1548428400; //for test's Fri, 25 Jan 2019 15:00:00 GMT
         uint256 currentPeriod = getPeriod(currentDate);
         uint256 amountOfTokens = 0;
-        if(0 < currentPeriod && currentPeriod < 7 && _weiAmount >= weiMinSale){
+        if(0 <= currentPeriod && currentPeriod < 7 && _weiAmount >= weiMinSale){
             amountOfTokens = _weiAmount.mul(priceToken).mul(discount[currentPeriod] + 1000).div(1000);
         }
         return amountOfTokens;
